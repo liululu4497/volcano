@@ -1,0 +1,60 @@
+apiVersion: batch.volcano.sh/v1alpha1 # 指定资源版本,kubectl api-version查看api版本
+kind: Job
+metadata:
+  name: uu-tfjob-volcano # pod name
+spec:
+  minAvailable: 2
+  schedulerName: volcano
+  plugins:
+    ssh: []
+    svc: []
+  tasks:
+    - replicas: 1
+      name: u-tfjobmaster
+      template:
+        spec:
+          containers:
+            - name: u-tfmaste # container name
+              image: tfjob-volcano:v1 # pull image from dokcer artifactory
+              imagePullPolicy: Always
+              env: # set proxy env
+                - name: HTTPS_PROXY
+                  value: http://10.178.228.82:3128
+                - name: HTTP_PROXY
+                  value: http://10.178.228.82:3128
+              command:
+                - /bin/bash
+                - -c 
+                - "python"
+                - "/app/main.py"
+                # - "--batch-size 1 --epochs 1"
+              ports:
+                - containerPort: 25
+                  name: tfjob-port
+              workingDir: /home
+          restartPolicy: OnFailure
+    - replicas: 1
+      name: u-tfjobworker
+      template:
+        spec:
+          containers:
+            - name: u-tfworker
+              image: tfjob-volcano:v1
+              imagePullPolicy: Always
+              env:
+                - name: HTTPS_PROXY
+                  value: http://10.178.228.82:3128
+                - name: HTTP_PROXY
+                  value: http://10.178.228.82:3128
+              command:
+                - /bin/bash
+                - -c 
+                - "python"
+                - "/app/main.py"
+                # - "--batch-size 1 --epochs 1"
+              ports:
+                - containerPort: 25
+                  name: tfjob-port
+              workingDir: /home
+          restartPolicy: OnFailure
+
